@@ -22,6 +22,9 @@ import sys
 reload(sys)
 sys.setdefaultencoding('utf-8')
 
+ABS_PATH = lambda p: os.path.join(os.path.dirname(os.path.realpath(sys.argv[0])), p)
+os.environ['CMAP_PATH'] = ABS_PATH('cmap')
+
 
 class ZhongDengWang:
 
@@ -93,7 +96,7 @@ class ZhongDengWang:
             if self.auto_captcha:
                 url = 'http://op.juhe.cn/vercode/index'
                 data2 = {
-                    'key': '57e595193b88b3ae027390fb95bdd858',
+                    'key': '2cc7dd829cff2b056d1022560d598e32',
                     'codeType': '1004',
                     'image': open('captcha.png', 'rb'),
                     'base64Str': base64.b64encode(open('captcha.png', 'rb').read())
@@ -240,6 +243,7 @@ class ZhongDengWang:
         except Exception, e:
             traceback.print_exc()
             self.browser.quit()
+            raw_input()
 
     def save_data_as_pickle(self):
         with open('data_list.pk', 'wb') as f:
@@ -342,10 +346,14 @@ class ZhongDengWang:
         pages = pdf.pages
         pdf_text = ''
         for page in pages:
-            pdf_text += page.extract_text()+'\n'
-        match = re.search(u'租金总额\s*(.*?)租赁财产唯一标识码.*?租赁财产描述(.*?)租赁财产信息附件', pdf_text, re.S)
+            pdf_text += str(page.extract_text())+'\n'
+        pdf_text = pdf_text.decode(chardet.detect(pdf_text)['encoding'])
+        # print pdf_text
+        match = re.search(u'租金总额\s*(.*?)\n.*?租赁财产描述(.*?)租赁财产信息附件', pdf_text, re.S)
         money = match.group(1).strip()
         desc = match.group(2).strip()
+        if not re.match(u'^\s*[\d\.,，]+?元\s*$', money):
+            money = ''
 
         pdf.close()
         return money, desc
@@ -355,7 +363,7 @@ class ZhongDengWang:
 
 
 if __name__ == '__main__':
-    zdw = ZhongDengWang(parse_pdf=True, auto_captcha=False)
+    zdw = ZhongDengWang(parse_pdf=True, auto_captcha=True)
 
     zdw.browser_init(headless=True)
     user = raw_input(u'请输入账号: '.encode('gbk'))
@@ -365,11 +373,12 @@ if __name__ == '__main__':
     zdw.query_by_name_list()
     zdw.browser_quit()
 
-    # zdw.read_pdf(u'pdf\\04859604000580597100_A.pdf')
     filename = time.strftime('%Y%m%d%H%M%S') + '.xls'
     zdw.save_data_as_excel(filename)
 
     raw_input()
 
-
-
+    # ret = zdw.read_pdf(u'pdf\\04826405000576848497_A.pdf')
+    # # ret = zdw.read_pdf(u'pdf\\04692354000561402399_A.pdf')
+    # for d in ret:
+    #     print d
