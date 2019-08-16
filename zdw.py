@@ -202,13 +202,21 @@ class ZhongDengWang:
                         if self.parse_pdf:
                             download = baibiao.find_element_by_xpath('td[7]/span')
                             download.click()
-                            self.browser.minimize_window()
+                            # self.browser.minimize_window()
                             handles = self.browser.window_handles
                             self.browser.switch_to.window(handles[1+n])
-                            self.browser.minimize_window()
+                            # self.browser.minimize_window()
                             if self.headless:
                                 self.enable_download_headless()
-                            pdf_a = self.browser.find_element_by_xpath('//*[@id="tab"]/tbody/tr[2]/td[2]/a')
+                            for i in range(10):
+                                try:
+                                    pdf_a = self.browser.find_element_by_xpath('//*[@id="tab"]/tbody/tr[2]/td[2]/a')
+                                    break
+                                except:
+                                    time.sleep(0.5)
+                                    if i == 9:
+                                        traceback.print_exc()
+                                        self.browser_quit()
                             regno = re.search("'(.+?)'", pdf_a.get_attribute('href')).group(1)
                             pdf_path = os.path.join(self.pdf_dir, regno + '_A.pdf')
                             if not os.path.exists(pdf_path):
@@ -350,10 +358,14 @@ class ZhongDengWang:
         pdf_text = pdf_text.decode(chardet.detect(pdf_text)['encoding'])
         # print pdf_text
         match = re.search(u'租金总额\s*(.*?)\n.*?租赁财产描述(.*?)租赁财产信息附件', pdf_text, re.S)
-        money = match.group(1).strip()
-        desc = match.group(2).strip()
-        if not re.match(u'^\s*[\d\.,，]+?元\s*$', money):
+        if match:
+            money = match.group(1).strip()
+            desc = match.group(2).strip()
+            if not re.match(u'^\s*[\d\.,，]+?元\s*$', money):
+                money = ''
+        else:
             money = ''
+            desc = ''
 
         pdf.close()
         return money, desc
